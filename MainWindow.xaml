@@ -23,9 +23,9 @@
                 <RowDefinition/>
                 <RowDefinition/>
             </Grid.RowDefinitions>
-            <Button Content="" Grid.Row="0" Background="{Binding Source={x:Static meesta:StatusView.InMeeting}, Path=Brush}" Command="{Binding ChangeStatusCommand}" CommandParameter="{x:Static meesta:StatusView.InMeeting}"/>
-            <Button Content="" Grid.Row="1" Background="{Binding Source={x:Static meesta:StatusView.NotInMeeting}, Path=Brush}" Command="{Binding ChangeStatusCommand}" CommandParameter="{x:Static meesta:StatusView.NotInMeeting}"/>
+            <Button Content="" Grid.Row="0" Background="{Binding Source={x:Static meesta:StatusView.InMeeting}, Path=Brush}" Command="{Binding ChangeStatusManuallyCommand}" CommandParameter="{x:Static meesta:StatusView.InMeeting}"/>
+            <Button Content="" Grid.Row="1" Background="{Binding Source={x:Static meesta:StatusView.NotInMeeting}, Path=Brush}" Command="{Binding ChangeStatusManuallyCommand}" CommandParameter="{x:Static meesta:StatusView.NotInMeeting}"/>
         </Grid>
-        <CheckBox Content="Observe OfficCommunicator status" Grid.Row="0" Grid.Column="0" Checked="CheckBox_Checked" Unchecked="CheckBox_Unchecked" Grid.ColumnSpan="2" />
+        <CheckBox Name="SyncCheckbox" Content="Sync with OfficeCommunicator" Grid.Row="0" Grid.Column="0" Checked="CheckBox_Checked" Unchecked="CheckBox_Unchecked" Grid.ColumnSpan="2" />
     </Grid>
 </Window>

@@ -2,6 +2,7 @@
    Restricted - Copyright (C) Siemens Healthcare GmbH/Siemens Medical Solutions USA, Inc., 2017. All rights reserved
    ------------------------------------------------------------------------------------------------- */
 
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
@@ -12,7 +13,9 @@ namespace Meesta
 {
     public class ViewModel : INotifyPropertyChanged
     {
-        public ICommand ChangeStatusCommand { get; set; }
+        public ICommand ChangeStatusManuallyCommand { get; set; }
+        public event PropertyChangedEventHandler PropertyChanged;
+        public event EventHandler<StatusChangedManuallyEventArgs> StatusChangedManually;
 
         private StatusView myStatus;
 
@@ -25,34 +28,68 @@ namespace Meesta
             }
         }
 
-        protected void SetField<T>(ref T field, T value, [CallerMemberName] string propertyName = null)
+        protected bool SetField<T>(ref T field, T value, [CallerMemberName] string propertyName = null)
         {
             if (EqualityComparer<T>.Default.Equals(field, value))
             {
-                return;
+                return false;
             }
             field = value;
-            OnPropertyChange(propertyName);
+            FirePropertyChange(propertyName);
+            return true;
         }
 
         public ViewModel()
         {
             Status = StatusView.NotInMeeting;
-            ChangeStatusCommand = new RelayCommand<StatusView>(statusView =>
+            ChangeStatusManuallyCommand = new RelayCommand<StatusView>(statusView =>
             {
-                Status = statusView;
+                SetStatus(statusView, true);
             });
         }
 
-        public event PropertyChangedEventHandler PropertyChanged;
+        private void SetStatus(StatusView statusView, bool manually)
+        {
+            PropertyChangedEventHandler onPropertyChanged = (sender, args) =>
+            {
+                if (args.PropertyName == "Status")
+                {
+                    FireStatusChangedManually(manually);
+                }
+            };
 
-        private void OnPropertyChange(string propertyName)
+            try
+            {
+                PropertyChanged += onPropertyChanged;
+                Status = statusView;
+            }
+            finally
+            {
+                PropertyChanged -= onPropertyChanged;
+            }
+        }
+
+        private void FireStatusChangedManually(bool manually)
+        {
+            var handler = StatusChangedManually;
+            if (handler != null)
+            {
+                handler(this, new StatusChangedManuallyEventArgs(Status.Status, manually));
+            }
+        }
+
+        private void FirePropertyChange(string propertyName)
         {
             var handler = PropertyChanged;
             if (handler != null)
             {
-                PropertyChanged(this, new PropertyChangedEventArgs(propertyName));
+                handler(this, new PropertyChangedEventArgs(propertyName));
             }
+        }
+
+        public void ChangeStatusAutomatically(Status status)
+        {
+            SetStatus(StatusView.Of(status), false);
         }
     }
 }

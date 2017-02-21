@@ -1,6 +1,7 @@
 ﻿using System.ComponentModel;
 using System.Threading;
 using System.Windows;
+using System.Windows.Controls;
 
 
 namespace Meesta
@@ -15,19 +16,26 @@ namespace Meesta
         public MainWindow()
         {
             InitializeComponent();
-            ((ViewModel) DataContext).PropertyChanged += OnPropertyChanged;
+            ((ViewModel) DataContext).StatusChangedManually += OnStatusChanged;
         }
 
-        private static void OnPropertyChanged(object sender, PropertyChangedEventArgs propertyChangedEventArgs)
+        private void OnStatusChanged(object sender, StatusChangedManuallyEventArgs eventArgs)
         {
-            if (propertyChangedEventArgs.PropertyName == "Status")
+            Notification.Send(eventArgs.Status);
+            if (SyncCheckbox.IsChecked.HasValue && SyncCheckbox.IsChecked.Value && eventArgs.Manually)
             {
-                Notification.Send(((ViewModel)sender).Status.Status);
+                CommunicatorService.SetStatus(eventArgs.Status);
             }
         }
 
         private void CheckBox_Checked(object sender, RoutedEventArgs e)
         {
+            if (!CommunicatorService.IsRunning())
+            {
+                ((CheckBox) sender).IsChecked = false;
+                return;
+            }
+
             myWorker = new BackgroundWorker
             {
                 WorkerReportsProgress = true,
@@ -40,7 +48,7 @@ namespace Meesta
 
         private void WorkerOnProgressChanged(object sender, ProgressChangedEventArgs progressChangedEventArgs)
         {
-            ((ViewModel) DataContext).Status = StatusView.Of((Status)progressChangedEventArgs.UserState);
+            ((ViewModel)DataContext).ChangeStatusAutomatically((Status) progressChangedEventArgs.UserState);
         }
 
         private void WorkerOnDoWork(object sender, DoWorkEventArgs doWorkEventArgs)
@@ -49,16 +57,21 @@ namespace Meesta
             {
                 (sender as BackgroundWorker).ReportProgress(0, CommunicatorService.GetCurrentStatus());
                 Thread.Sleep(5000);
-            } while (!doWorkEventArgs.Cancel);
+            } while (myWorker != null && !myWorker.CancellationPending);
 
+            if (myWorker == null)
+            {
+                return;
+            }
             myWorker.ProgressChanged -= WorkerOnProgressChanged;
             myWorker.DoWork -= WorkerOnDoWork;
             myWorker.Dispose();
+            myWorker = null;
         }
 
         private void CheckBox_Unchecked(object sender, RoutedEventArgs e)
         {
-            if (!myWorker.CancellationPending)
+            if (myWorker != null && !myWorker.CancellationPending)
             {
                 myWorker.CancelAsync();
             }
